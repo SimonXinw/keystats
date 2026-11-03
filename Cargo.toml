@@ -1,0 +1,31 @@
+[package]
+name = "keystats"
+version = "1.0.0"
+edition = "2021"
+description = "按进程统计每次键盘和鼠标按键，只读取不拦截"
+publish = false
+
+[build-dependencies]
+winres = "0.1"
+
+[dependencies]
+eframe = { version = "0.31", default-features = false, features = ["default_fonts", "glow"] }
+egui = "0.31"
+parking_lot = "0.12"
+rfd = "0.15"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+windows = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_Security",
+    "Win32_System_Threading",
+    "Win32_System_LibraryLoader",
+] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+opt-level = 3
+panic = "abort"
+strip = true
