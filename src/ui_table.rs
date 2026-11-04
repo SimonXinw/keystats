@@ -10,6 +10,7 @@ use egui::{Align, Color32, Layout, RichText, ScrollArea, TextEdit, Ui, Vec2};
 pub enum ReportView {
     Detail,
     Process,
+    Keys,
     Heat,
 }
 
@@ -38,6 +39,7 @@ pub fn show(
                 &[
                     (ReportView::Detail, "按键明细"),
                     (ReportView::Process, "进程汇总"),
+                    (ReportView::Keys, "按键合计"),
                     (ReportView::Heat, "键位热力"),
                 ],
             );
@@ -75,6 +77,7 @@ pub fn show(
         match *view {
             ReportView::Detail => ui_list::detail(ui, &snap.rows, &needle),
             ReportView::Process => ui_list::process(ui, &snap.rows, &needle),
+            ReportView::Keys => ui_list::keys(ui, &snap.rows, &needle),
             ReportView::Heat => {
                 ScrollArea::vertical()
                     .auto_shrink([false, false])

@@ -6,6 +6,7 @@ use std::sync::Arc;
 pub fn view() -> Option<ReportView> {
     match std::env::var("KEYSTATS_DEMO").ok()?.as_str() {
         "process" => Some(ReportView::Process),
+        "keys" => Some(ReportView::Keys),
         "heat" | "palette" => Some(ReportView::Heat),
         _ => None,
     }

@@ -23,6 +23,7 @@ mod theme;
 mod ui_dialog;
 mod ui_header;
 mod ui_heat;
+mod ui_grid;
 mod ui_kit;
 mod ui_list;
 mod ui_mouse;
