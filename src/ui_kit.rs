@@ -64,15 +64,16 @@ pub fn toggle(ui: &mut Ui, on: bool, label: &str) -> bool {
     let text = RichText::new(label)
         .font(theme::bold(14.0))
         .color(if on { ACCENT } else { MUTED });
+    let width = (label.chars().count() as f32 * 15.0 + 28.0).max(148.0);
     let widget = egui::Button::new(text)
         .fill(if on { RAISED } else { SUNKEN })
         .stroke(Stroke::new(1.0, if on { LINE } else { LINE_SOFT }))
         .corner_radius(R_CTRL)
-        .min_size(Vec2::new(124.0, CTRL_H));
+        .min_size(Vec2::new(width, CTRL_H));
     let hint = if on {
-        "本窗口上的点击不计入数字和导出。再点一次就会算进去。"
+        "本窗口的按键正计入数字和导出。再点一次就取消。"
     } else {
-        "本窗口上的点击也会计入。再点一次就排除。"
+        "本窗口的按键不计入数字和导出。再点一次就打开。"
     };
     ui.add(widget).on_hover_text(hint).clicked()
 }

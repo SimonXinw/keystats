@@ -9,7 +9,12 @@ mod export;
 mod hook;
 mod instance;
 mod keys;
+mod launch;
+mod live;
+#[cfg(test)]
+mod live_test;
 mod pace;
+mod palette;
 mod process;
 mod stats;
 mod stats_test;
@@ -22,11 +27,12 @@ mod ui_kit;
 mod ui_list;
 mod ui_mouse;
 mod ui_paint;
+mod ui_palette;
 mod ui_table;
 
 fn main() -> eframe::Result<()> {
     if !instance::primary() {
         return Ok(());
     }
-    app::run()
+    launch::run()
 }

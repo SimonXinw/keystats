@@ -115,7 +115,7 @@ fn parse(text: &str) -> Option<Saved> {
     let mut saved = Saved {
         elapsed: Duration::ZERO,
         dropped: 0,
-        count_self: false,
+        count_self: true,
         rows: Vec::new(),
     };
     let mut body = false;

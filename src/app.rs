@@ -4,10 +4,10 @@ use crate::stats::Stats;
 use crate::store;
 use crate::theme;
 use crate::ui_header;
+use crate::ui_palette::Colors;
 use crate::ui_table::{self, ReportView};
 use chrono::Local;
 use std::sync::Arc;
-use std::time::Duration;
 
 pub struct KeyStatsApp {
     hooks: Option<Hooks>,
@@ -18,10 +18,11 @@ pub struct KeyStatsApp {
     confirm_reset: bool,
     notice: String,
     error: Option<String>,
+    colors: Colors,
 }
 
 impl KeyStatsApp {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let stats = Stats::new();
         let (keeper, restored) = store::Keeper::open(&stats);
         let (hooks, error) = match Hooks::start(Arc::clone(&stats)) {
@@ -38,6 +39,10 @@ impl KeyStatsApp {
         let confirm_reset = crate::demo::reset_open();
         #[cfg(not(debug_assertions))]
         let confirm_reset = false;
+        #[cfg(debug_assertions)]
+        let colors = Colors::load().opened(crate::demo::palette_open());
+        #[cfg(not(debug_assertions))]
+        let colors = Colors::load();
         Self {
             hooks,
             stats,
@@ -47,6 +52,7 @@ impl KeyStatsApp {
             confirm_reset,
             notice: restored,
             error,
+            colors,
         }
     }
 
@@ -89,7 +95,7 @@ impl KeyStatsApp {
 
 impl eframe::App for KeyStatsApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        ctx.request_repaint_after(Duration::from_millis(300));
+        crate::live::sync(ctx, self.view == ReportView::Heat);
         #[cfg(debug_assertions)]
         crate::demo::capture(ctx);
         self.keeper.tick(&self.stats);
@@ -130,8 +136,13 @@ impl eframe::App for KeyStatsApp {
                 &mut count_self,
                 &snap,
                 status,
+                &mut self.colors,
             );
         });
+        if self.view == ReportView::Heat {
+            self.colors.window(ctx);
+        }
+        self.colors.persist(ctx.input(|i| i.pointer.any_down()));
         if count_self != self.stats.count_self() {
             self.stats.set_count_self(count_self);
             self.keeper.flush(&self.stats);
@@ -162,37 +173,10 @@ impl KeyStatsApp {
     }
 }
 
-pub fn run() -> eframe::Result<()> {
-    let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_title(crate::instance::TITLE)
-            .with_icon(app_icon())
-            .with_inner_size([1500.0, 880.0])
-            .with_min_inner_size([1280.0, 680.0]),
-        persist_window: false,
-        ..Default::default()
-    };
-    eframe::run_native(
-        crate::instance::TITLE,
-        options,
-        Box::new(|cc| {
-            theme::install(&cc.egui_ctx);
-            Ok(Box::new(KeyStatsApp::new()))
-        }),
-    )
-}
-
 impl Drop for KeyStatsApp {
     fn drop(&mut self) {
         self.hooks.take();
         self.keeper.flush(&self.stats);
-    }
-}
-
-fn app_icon() -> egui::IconData {
-    egui::IconData {
-        rgba: include_bytes!("../assets/icon_64.rgba").to_vec(),
-        width: 64,
-        height: 64,
+        self.colors.persist(false);
     }
 }

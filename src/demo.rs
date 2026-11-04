@@ -6,13 +6,17 @@ use std::sync::Arc;
 pub fn view() -> Option<ReportView> {
     match std::env::var("KEYSTATS_DEMO").ok()?.as_str() {
         "process" => Some(ReportView::Process),
-        "heat" => Some(ReportView::Heat),
+        "heat" | "palette" => Some(ReportView::Heat),
         _ => None,
     }
 }
 
 pub fn reset_open() -> bool {
     std::env::var("KEYSTATS_DEMO").is_ok_and(|v| v == "reset")
+}
+
+pub fn palette_open() -> bool {
+    std::env::var("KEYSTATS_DEMO").is_ok_and(|v| v == "palette")
 }
 
 pub fn capture(ctx: &egui::Context) {
@@ -71,6 +75,11 @@ pub fn seed(stats: &Stats) {
     for (name, key, times) in plan {
         for _ in 0..times {
             stats.ingest(session, Arc::clone(name), key);
+        }
+    }
+    if std::env::var_os("KEYSTATS_DEMO_LIT").is_some() {
+        for key in [b'W' as u16, 0xA0, MOUSE_RIGHT] {
+            crate::live::press(key);
         }
     }
 }

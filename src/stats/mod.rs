@@ -65,7 +65,7 @@ impl Stats {
             inner: Mutex::new(Inner {
                 session: 1,
                 running: false,
-                count_self: false,
+                count_self: true,
                 revision: 0,
                 phase: Phase::Idle,
                 self_name: own_process_name(),

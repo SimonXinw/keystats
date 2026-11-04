@@ -2,12 +2,13 @@ use crate::keys::{
     MOUSE_LEFT, MOUSE_MIDDLE, MOUSE_RIGHT, MOUSE_X1, MOUSE_X2, WHEEL_DOWN, WHEEL_LEFT, WHEEL_RIGHT,
     WHEEL_UP,
 };
+use crate::palette::Palette;
 use crate::theme::{LINE, LINE_SOFT, SUNKEN};
-use crate::ui_paint;
+use crate::ui_paint::{self, Cap};
 use egui::{Color32, Pos2, Rect, Sense, Stroke, StrokeKind, Ui, Vec2};
 use std::collections::HashMap;
 
-pub fn draw(ui: &mut Ui, counts: &HashMap<u16, u64>, height: f32) {
+pub fn draw(ui: &mut Ui, counts: &HashMap<u16, u64>, height: f32, palette: &Palette) {
     let width = ui.available_width();
     let (area, painter) = ui.allocate_painter(Vec2::new(width, height.max(180.0)), Sense::empty());
     let max_h = (area.rect.height() * 0.92).max(160.0);
@@ -18,24 +19,7 @@ pub fn draw(ui: &mut Ui, counts: &HashMap<u16, u64>, height: f32) {
         Pos2::new(area.rect.center().x, area.rect.top() + body_h * 0.5 + 4.0),
         Vec2::new(body_w, body_h),
     );
-    painter.rect_filled(
-        body.translate(Vec2::new(0.0, 6.0)),
-        body_w * 0.42,
-        Color32::from_black_alpha(90),
-    );
-    painter.rect(
-        body,
-        body_w * 0.42,
-        SUNKEN,
-        Stroke::new(1.0, LINE),
-        StrokeKind::Inside,
-    );
-    let seam = body.top() + body_h * 0.34 + 4.0;
-    painter.hline(
-        (body.left() + body_w * 0.12)..=(body.right() - body_w * 0.12),
-        seam,
-        Stroke::new(1.0, LINE_SOFT),
-    );
+    shell(&painter, body);
     let split = body.top() + body_h * 0.34;
     let mid = body.center().x;
     let left = Rect::from_min_max(
@@ -55,70 +39,24 @@ pub fn draw(ui: &mut Ui, counts: &HashMap<u16, u64>, height: f32) {
     let side_x = body.left() + body_w * 0.05;
     let side_top = split + body_h * 0.06;
     let side_front = Rect::from_min_size(Pos2::new(side_x, side_top), Vec2::new(side_w, side_h));
-    let side_back = Rect::from_min_size(
-        Pos2::new(side_x, side_top + side_h + 4.0),
-        Vec2::new(side_w, side_h),
-    );
-    let max = peak(
-        counts,
-        &[
-            MOUSE_LEFT,
-            MOUSE_RIGHT,
-            MOUSE_MIDDLE,
-            MOUSE_X1,
-            MOUSE_X2,
-            WHEEL_UP,
-            WHEEL_DOWN,
-        ],
-    );
-    let count = |key| counts.get(&key).copied().unwrap_or(0);
-    ui_paint::paint_key(
-        ui,
-        &painter,
-        left,
-        MOUSE_LEFT,
-        "左键",
-        count(MOUSE_LEFT),
-        max,
-    );
-    ui_paint::paint_key(
-        ui,
-        &painter,
-        right,
-        MOUSE_RIGHT,
-        "右键",
-        count(MOUSE_RIGHT),
-        max,
-    );
-    ui_paint::paint_key(
-        ui,
-        &painter,
-        third(wheel, 0),
-        WHEEL_UP,
-        "↑",
-        count(WHEEL_UP),
-        max,
-    );
-    ui_paint::paint_key(
-        ui,
-        &painter,
-        third(wheel, 2),
-        WHEEL_DOWN,
-        "↓",
-        count(WHEEL_DOWN),
-        max,
-    );
-    ui_paint::paint_key(
-        ui,
-        &painter,
-        third(wheel, 1),
-        MOUSE_MIDDLE,
-        "中",
-        count(MOUSE_MIDDLE),
-        max,
-    );
-    ui_paint::paint_key(ui, &painter, side_front, MOUSE_X2, "侧2", count(MOUSE_X2), max);
-    ui_paint::paint_key(ui, &painter, side_back, MOUSE_X1, "侧1", count(MOUSE_X1), max);
+    let side_back = side_front.translate(Vec2::new(0.0, side_h + 4.0));
+    let cap = |rect: Rect, key: u16, face: &'static str| Cap {
+        rect,
+        key,
+        face,
+        count: counts.get(&key).copied().unwrap_or(0),
+    };
+    let caps = [
+        cap(left, MOUSE_LEFT, "左键"),
+        cap(right, MOUSE_RIGHT, "右键"),
+        cap(third(wheel, 0), WHEEL_UP, "↑"),
+        cap(third(wheel, 1), MOUSE_MIDDLE, "中"),
+        cap(third(wheel, 2), WHEEL_DOWN, "↓"),
+        cap(side_front, MOUSE_X2, "侧2"),
+        cap(side_back, MOUSE_X1, "侧1"),
+    ];
+    let max = caps.iter().map(|cap| cap.count).max().unwrap_or(0);
+    ui_paint::paint_all(ui, &painter, &caps, max, palette);
 }
 
 pub fn extra_line(counts: &HashMap<u16, u64>) -> Option<String> {
@@ -137,11 +75,27 @@ pub fn extra_line(counts: &HashMap<u16, u64>) -> Option<String> {
     }
 }
 
-fn peak(counts: &HashMap<u16, u64>, keys: &[u16]) -> u64 {
-    keys.iter()
-        .map(|key| counts.get(key).copied().unwrap_or(0))
-        .max()
-        .unwrap_or(0)
+/// 机身：落地阴影 + 底边厚度 + 顶部一层很淡的高光。
+fn shell(painter: &egui::Painter, body: Rect) {
+    let radius = body.width() * 0.42;
+    painter.rect_filled(
+        body.translate(Vec2::new(0.0, 8.0)),
+        radius,
+        Color32::from_black_alpha(90),
+    );
+    painter.rect_filled(
+        body.translate(Vec2::new(0.0, 4.0)),
+        radius,
+        Color32::from_rgb(6, 8, 12),
+    );
+    painter.rect(body, radius, SUNKEN, Stroke::new(1.0, LINE), StrokeKind::Inside);
+    ui_paint::sheen(painter, body, radius, 0.6);
+    let seam = body.top() + body.height() * 0.34 + 4.0;
+    painter.hline(
+        (body.left() + body.width() * 0.12)..=(body.right() - body.width() * 0.12),
+        seam,
+        Stroke::new(1.0, LINE_SOFT),
+    );
 }
 
 fn third(rect: Rect, index: usize) -> Rect {

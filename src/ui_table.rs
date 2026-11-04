@@ -3,6 +3,7 @@ use crate::theme::{CAPTION, FAINT, GAP, MUTED, TEXT};
 use crate::ui_heat;
 use crate::ui_kit;
 use crate::ui_list;
+use crate::ui_palette::Colors;
 use egui::{Align, Color32, Layout, RichText, ScrollArea, TextEdit, Ui, Vec2};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -24,6 +25,7 @@ pub fn show(
     count_self: &mut bool,
     snap: &Snapshot,
     status: Option<Status>,
+    colors: &mut Colors,
 ) {
     let width = ui.available_width();
     ui.allocate_ui_with_layout(
@@ -40,8 +42,12 @@ pub fn show(
                 ],
             );
             ui.add_space(8.0);
-            let label = if *count_self { "计入本程序" } else { "不计本程序" };
-            if ui_kit::toggle(ui, !*count_self, label) {
+            let label = if *count_self {
+                "取消计入本程序"
+            } else {
+                "打开计入本程序"
+            };
+            if ui_kit::toggle(ui, *count_self, label) {
                 *count_self = !*count_self;
             }
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -72,7 +78,7 @@ pub fn show(
             ReportView::Heat => {
                 ScrollArea::vertical()
                     .auto_shrink([false, false])
-                    .show(ui, |ui| ui_heat::show(ui, &snap.rows, &needle));
+                    .show(ui, |ui| ui_heat::show(ui, &snap.rows, &needle, colors));
             }
         }
     });

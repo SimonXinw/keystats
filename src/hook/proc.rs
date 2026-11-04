@@ -7,8 +7,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use windows::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
 use windows::Win32::UI::WindowsAndMessaging::{
     CallNextHookEx, GetForegroundWindow, GetWindowThreadProcessId, KBDLLHOOKSTRUCT, LLKHF_UP,
-    MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_MBUTTONDOWN, WM_MOUSEHWHEEL, WM_MOUSEWHEEL, WM_RBUTTONDOWN,
-    WM_XBUTTONDOWN,
+    MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP, WM_MOUSEHWHEEL,
+    WM_MOUSEWHEEL, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_XBUTTONDOWN, WM_XBUTTONUP,
 };
 
 static DOWN: [AtomicBool; 256] = [const { AtomicBool::new(false) }; 256];
@@ -19,6 +19,7 @@ pub fn clear_keyboard_state() {
         key.store(false, Ordering::Relaxed);
     }
     NUMPAD_ENTER_DOWN.store(false, Ordering::Relaxed);
+    crate::live::clear();
 }
 
 pub unsafe extern "system" fn keyboard_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
@@ -52,8 +53,10 @@ fn take_keyboard(lparam: LPARAM) -> Option<u16> {
     let key = normalize_vk(info.vkCode, info.scanCode, info.flags.0);
     if info.flags.contains(LLKHF_UP) {
         mark_up(key);
+        crate::live::release(key);
         None
     } else if mark_down(key) {
+        crate::live::press(key);
         Some(key)
     } else {
         None
@@ -61,15 +64,26 @@ fn take_keyboard(lparam: LPARAM) -> Option<u16> {
 }
 
 fn take_mouse(wparam: WPARAM, lparam: LPARAM) -> Option<u16> {
-    match wparam.0 as u32 {
-        WM_LBUTTONDOWN => Some(MOUSE_LEFT),
-        WM_RBUTTONDOWN => Some(MOUSE_RIGHT),
-        WM_MBUTTONDOWN => Some(MOUSE_MIDDLE),
-        WM_XBUTTONDOWN => Some(x_button(lparam)),
-        WM_MOUSEWHEEL => wheel_key(lparam, true),
-        WM_MOUSEHWHEEL => wheel_key(lparam, false),
-        _ => None,
-    }
+    let key = match wparam.0 as u32 {
+        WM_LBUTTONDOWN => MOUSE_LEFT,
+        WM_RBUTTONDOWN => MOUSE_RIGHT,
+        WM_MBUTTONDOWN => MOUSE_MIDDLE,
+        WM_XBUTTONDOWN => x_button(lparam),
+        WM_LBUTTONUP => return released(MOUSE_LEFT),
+        WM_RBUTTONUP => return released(MOUSE_RIGHT),
+        WM_MBUTTONUP => return released(MOUSE_MIDDLE),
+        WM_XBUTTONUP => return released(x_button(lparam)),
+        WM_MOUSEWHEEL => return wheel_key(lparam, true),
+        WM_MOUSEHWHEEL => return wheel_key(lparam, false),
+        _ => return None,
+    };
+    crate::live::press(key);
+    Some(key)
+}
+
+fn released(key: u16) -> Option<u16> {
+    crate::live::release(key);
+    None
 }
 
 fn x_button(lparam: LPARAM) -> u16 {
@@ -87,7 +101,7 @@ fn wheel_key(lparam: LPARAM, vertical: bool) -> Option<u16> {
     if delta == 0 {
         return None;
     }
-    Some(if vertical {
+    let key = if vertical {
         if delta > 0 {
             WHEEL_UP
         } else {
@@ -97,7 +111,9 @@ fn wheel_key(lparam: LPARAM, vertical: bool) -> Option<u16> {
         WHEEL_RIGHT
     } else {
         WHEEL_LEFT
-    })
+    };
+    crate::live::blip(key);
+    Some(key)
 }
 
 fn mark_down(key: u16) -> bool {

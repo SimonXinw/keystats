@@ -41,6 +41,8 @@ mod tests {
     #[test]
     fn own_window_stays_out_until_asked_and_restore_keeps_counts() {
         let stats = Stats::new();
+        assert!(stats.count_self());
+        stats.set_count_self(false);
         stats.start();
         let session = stats.session();
         stats.ingest(session, Arc::from("Code.exe"), 0x41);
