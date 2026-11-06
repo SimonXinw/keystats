@@ -5,19 +5,22 @@ use egui::{Align, Color32, Layout, RichText, Ui, Vec2};
 use std::collections::HashSet;
 use std::time::Duration;
 
+#[derive(Clone, Copy)]
 pub struct HeaderAction {
     pub start: bool,
     pub pause: bool,
     pub reset: bool,
     pub export: bool,
+    pub settings: bool,
 }
 
-pub fn show(ui: &mut Ui, snap: &Snapshot, ready: bool) -> HeaderAction {
+pub fn show(ui: &mut Ui, snap: &Snapshot, ready: bool, settings_open: bool) -> HeaderAction {
     let mut action = HeaderAction {
         start: false,
         pause: false,
         reset: false,
         export: false,
+        settings: false,
     };
     let width = ui.available_width();
     ui.allocate_ui_with_layout(
@@ -54,6 +57,11 @@ pub fn show(ui: &mut Ui, snap: &Snapshot, ready: bool) -> HeaderAction {
                 };
                 action.start =
                     ui_kit::button(ui, start, Tone::Primary, !snap.running && ready).clicked();
+                ui.add_space(GAP);
+                let tone = if settings_open { Tone::Primary } else { Tone::Plain };
+                action.settings = ui_kit::button(ui, "设置", tone, true)
+                    .on_hover_text("关闭窗口时缩到托盘，或直接退出。")
+                    .clicked();
             });
         },
     );

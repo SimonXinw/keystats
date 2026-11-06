@@ -141,6 +141,10 @@ fn wake() {
     if !WATCH.load(Ordering::Relaxed) {
         return;
     }
+    nudge();
+}
+
+pub fn nudge() {
     if let Some(ctx) = CTX.lock().as_ref() {
         ctx.request_repaint();
     }

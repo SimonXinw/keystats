@@ -1,5 +1,6 @@
 use crate::export;
 use crate::hook::Hooks;
+use crate::shell::Shell;
 use crate::stats::Stats;
 use crate::store;
 use crate::theme;
@@ -19,6 +20,7 @@ pub struct KeyStatsApp {
     notice: String,
     error: Option<String>,
     colors: Colors,
+    shell: Shell,
 }
 
 impl KeyStatsApp {
@@ -53,6 +55,7 @@ impl KeyStatsApp {
             notice: restored,
             error,
             colors,
+            shell: Shell::start(),
         }
     }
 
@@ -107,12 +110,13 @@ impl eframe::App for KeyStatsApp {
             pause: false,
             reset: false,
             export: false,
+            settings: false,
         };
         let frame = egui::Frame::NONE
             .fill(theme::BG)
             .inner_margin(egui::Margin::symmetric(24, 20));
         egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
-            action = ui_header::show(ui, &snap, ready);
+            action = ui_header::show(ui, &snap, ready, self.shell.settings_open());
             ui.add_space(theme::GAP + 4.0);
             let status = match (&self.error, self.notice.is_empty()) {
                 (Some(error), _) => Some(ui_table::Status {
@@ -148,6 +152,12 @@ impl eframe::App for KeyStatsApp {
             self.keeper.flush(&self.stats);
         }
         self.apply(action, &snap.rows);
+        if action.settings {
+            self.shell.toggle_settings();
+        }
+        if self.shell.on_frame(ctx, &mut self.notice) {
+            self.keeper.flush(&self.stats);
+        }
         self.reset_dialog(ctx);
     }
 }

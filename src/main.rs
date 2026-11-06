@@ -2,12 +2,14 @@
 
 mod app;
 mod board;
+mod close_mode;
 mod board_test;
 #[cfg(debug_assertions)]
 mod demo;
 mod export;
 mod hook;
 mod instance;
+mod shell;
 mod keys;
 mod launch;
 mod live;
@@ -20,6 +22,7 @@ mod stats;
 mod stats_test;
 mod store;
 mod theme;
+mod tray;
 mod ui_dialog;
 mod ui_header;
 mod ui_heat;
@@ -29,6 +32,7 @@ mod ui_list;
 mod ui_mouse;
 mod ui_paint;
 mod ui_palette;
+mod ui_settings;
 mod ui_table;
 
 fn main() -> eframe::Result<()> {

@@ -20,6 +20,10 @@ pub fn palette_open() -> bool {
     std::env::var("KEYSTATS_DEMO").is_ok_and(|v| v == "palette")
 }
 
+pub fn settings_open() -> bool {
+    std::env::var("KEYSTATS_DEMO").is_ok_and(|v| v == "settings")
+}
+
 pub fn capture(ctx: &egui::Context) {
     let Some(path) = std::env::var_os("KEYSTATS_SHOT") else {
         return;
