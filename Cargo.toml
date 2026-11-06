@@ -1,6 +1,6 @@
 [package]
 name = "keystats"
-version = "1.0.1"
+version = "1.0.3"
 edition = "2021"
 description = "按进程统计每次键盘和鼠标按键，只读取不拦截"
 publish = false
